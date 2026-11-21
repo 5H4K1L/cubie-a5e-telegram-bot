@@ -1,5 +1,6 @@
 # Core runtime (includes JobQueue for scheduled reports)
 python-telegram-bot[job-queue]>=21,<23
 python-dotenv>=1,<2
+tzdata>=2024.1
 
 # Gemini is optional. Install requirements-ai.txt only when AI_ENABLED=true.
