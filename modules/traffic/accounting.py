@@ -115,7 +115,7 @@ class TrafficAccounting:
             raise ValueError("timestamp must be positive")
         with self._connect() as conn:
             previous = conn.execute(
-                "SELECT timestamp,interface,rx_bytes,tx_bytes FROM snapshots ORDER BY timestamp DESC,id DESC LIMIT 1"
+                "SELECT timestamp,interface,rx_bytes,tx_bytes FROM snapshots ORDER BY id DESC LIMIT 1"
             ).fetchone()
             outcome = {"baseline": previous is None, "valid": False, "reason": None}
             if previous is not None:
