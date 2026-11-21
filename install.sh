@@ -19,26 +19,22 @@ else
     exit 1
 fi
 
+echo "Installing firmware-matched Python and runtime prerequisites..."
 if [ "$PM" = apk ]; then
     apk update
-    apk add python3 py3-pip py3-virtualenv git ca-bundle
+    apk add python3 python3-venv python3-pip python3-sqlite3 git ca-bundle
 else
     opkg update
-    opkg install python3 python3-pip git ca-bundle
-fi
-
-if [ ! -d "$APP_DIR/.git" ]; then
-    git clone "$REPO_URL" "$APP_DIR"
-else
-    git -C "$APP_DIR" pull --ff-only
+    opkg install python3 python3-pip python3-venv python3-sqlite3 git ca-bundle
 fi
 
 if [ ! -x /usr/bin/python3 ]; then
     echo "Python 3 was not installed at /usr/bin/python3." >&2
     exit 1
 fi
-python3 -c 'import sqlite3, zoneinfo, ssl' || {
-    echo "Python sqlite3, zoneinfo, and TLS support are required; install the matching firmware Python modules." >&2
+
+python3 -c 'import sqlite3, zoneinfo, ssl, venv' || {
+    echo "Python sqlite3, zoneinfo, TLS, and venv support are required." >&2
     exit 1
 }
 python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' || {
@@ -46,27 +42,38 @@ python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' || {
     exit 1
 }
 
+if ! command -v git >/dev/null 2>&1; then
+    echo "Git is required but was not installed." >&2
+    exit 1
+fi
+
+if [ ! -d "$APP_DIR/.git" ]; then
+    mkdir -p "$(dirname "$APP_DIR")"
+    git clone "$REPO_URL" "$APP_DIR"
+else
+    git -C "$APP_DIR" pull --ff-only
+fi
+
 mkdir -p /etc/cubie-a5e-telegram-bot
 cd "$APP_DIR"
-if ! python3 -m venv --system-site-packages .venv; then
-    rm -rf .venv
-    if command -v virtualenv >/dev/null 2>&1; then
-        virtualenv --system-site-packages .venv
-    else
-        echo "Python virtual environment support is missing. Install the matching venv/virtualenv package for this firmware and rerun." >&2
-        exit 1
-    fi
+
+if [ ! -x "$APP_DIR/.venv/bin/python" ]; then
+    python3 -m venv "$APP_DIR/.venv"
 fi
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+
+"$APP_DIR/.venv/bin/python" -m pip install --upgrade pip
+"$APP_DIR/.venv/bin/python" -m pip install -r requirements.txt
 
 if [ ! -f "$APP_DIR/.env" ]; then
     cp "$APP_DIR/.env.example" "$APP_DIR/.env"
     chmod 600 "$APP_DIR/.env"
-    echo "Created $APP_DIR/.env. Edit TELEGRAM_BOT_TOKEN and TELEGRAM_OWNER_ID before starting."
+    echo "Created $APP_DIR/.env. Configure TELEGRAM_BOT_TOKEN and TELEGRAM_OWNER_ID before starting."
+else
+    chmod 600 "$APP_DIR/.env"
 fi
 
 sed "s|/usr/bin/python3|$APP_DIR/.venv/bin/python|" "$APP_DIR/openwrt/cubie-a5e-telegram-bot.init" > "$SERVICE"
 chmod 755 "$SERVICE"
 "$SERVICE" enable
-echo "Installation files are ready. Edit $APP_DIR/.env, then run: $SERVICE start"
+
+echo "Installation files are ready. Configure $APP_DIR/.env, then run: $SERVICE start"
