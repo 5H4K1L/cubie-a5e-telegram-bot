@@ -82,11 +82,11 @@ async def post_init(application: Application):
     jobs.run_repeating(sample_traffic, interval=cfg.sample_interval, first=5, name="wan-sampling")
     jobs.run_repeating(alert_check, interval=cfg.alert_interval, first=30, name="alert-monitor")
     jobs.run_daily(daily_usage, time=parse_hhmm(cfg.daily_report_time).replace(tzinfo=tz), name="daily-traffic-report")
-    jobs.run_daily(monthly_usage, time=parse_hhmm(cfg.monthly_report_time).replace(tzinfo=tz), name="monthly-traffic-report", days=(1,))
+    jobs.run_monthly(monthly_usage, when=parse_hhmm(cfg.monthly_report_time).replace(tzinfo=tz), day=1, name="monthly-traffic-report")
     if application.bot_data.get("ai") is not None:
-        jobs.run_daily(ai_daily, time=parse_hhmm(cfg.ai_daily_time).replace(tzinfo=tz), name="ai-daily", days=tuple(range(7)))
+        jobs.run_daily(ai_daily, time=parse_hhmm(cfg.ai_daily_time).replace(tzinfo=tz), name="ai-daily")
         jobs.run_daily(ai_weekly, time=parse_hhmm(cfg.ai_weekly_time).replace(tzinfo=tz), name="ai-weekly", days=(cfg.ai_weekly_day,))
-        jobs.run_daily(ai_monthly, time=parse_hhmm(cfg.ai_monthly_time).replace(tzinfo=tz), name="ai-monthly", days=(cfg.ai_monthly_day,))
+        jobs.run_monthly(ai_monthly, when=parse_hhmm(cfg.ai_monthly_time).replace(tzinfo=tz), day=cfg.ai_monthly_day, name="ai-monthly")
     LOG.info("Bot initialized; scheduled jobs registered")
     await safe_send(application, "✅ Cubie A5E Router Bot started. WAN sampling and monitoring are active.")
 
