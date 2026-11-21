@@ -37,6 +37,10 @@ if [ ! -x /usr/bin/python3 ]; then
     echo "Python 3 was not installed at /usr/bin/python3." >&2
     exit 1
 fi
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' || {
+    echo "Python 3.10 or newer is required." >&2
+    exit 1
+}
 
 mkdir -p /etc/cubie-a5e-telegram-bot
 cd "$APP_DIR"
