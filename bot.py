@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import time as wall_time
+from pathlib import Path
 from zoneinfo import ZoneInfo
 from telegram.ext import Application, ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
@@ -106,7 +107,9 @@ def build_ai(cfg: Config):
         return None
 
 def main():
-    load_dotenv()
+    # procd may start the process with / as its working directory.
+    # Resolve .env relative to this source file so the service always loads it.
+    load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
     cfg = Config.load()
     logging.basicConfig(level=getattr(logging, cfg.log_level, logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
