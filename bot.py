@@ -11,7 +11,7 @@ from modules import router
 from modules.handlers import (
     start, help_command, status, cpu, memory_command, storage_command, temp_command,
     uptime_command, network_command, clients_command, system_command, traffic_command,
-    traffic_today, traffic_month, traffic_mtd, ai_command, reboot_command, confirmation_callback,
+    traffic_today, traffic_month, traffic_mtd, ai_command, reboot_command, traffic_reset_command, confirmation_callback,
 )
 from modules.traffic.accounting import TrafficAccounting, format_report
 from modules.notifications import AlertMonitor
@@ -120,7 +120,7 @@ def main():
         ("uptime", uptime_command), ("network", network_command), ("clients", clients_command),
         ("system", system_command), ("traffic", traffic_command), ("traffic_today", traffic_today),
         ("traffic_month", traffic_month), ("traffic_mtd", traffic_mtd), ("ai", ai_command),
-        ("reboot", reboot_command),
+        ("reboot", reboot_command), ("traffic_reset", traffic_reset_command),
     ]
     for command, callback in handlers:
         application.add_handler(CommandHandler(command, callback))
