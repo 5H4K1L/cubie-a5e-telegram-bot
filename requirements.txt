@@ -1,5 +1,5 @@
-# Base Telegram bot dependency; pin a tested version before production deployment.
-python-telegram-bot>=21,<23
+# Core runtime (includes JobQueue for scheduled reports)
+python-telegram-bot[job-queue]>=21,<23
+python-dotenv>=1,<2
 
-# Optional AI dependency; install only when Gemini AI is enabled.
-google-genai>=1,<2
+# Gemini is optional. Install requirements-ai.txt only when AI_ENABLED=true.
