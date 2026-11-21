@@ -98,7 +98,8 @@ The bot is designed to send separate daily and monthly WAN usage summaries.
 - Daily report: previous local calendar day's download and upload totals.
 - Monthly report: previous calendar month's totals, with month-to-date usage available on demand.
 - Reports must identify the WAN interface and date range.
-- Usage is calculated from locally stored interface-counter snapshots. If the router reboots, counters reset, or the WAN interface changes, the bot must detect the discontinuity and mark affected totals as incomplete rather than inventing data.
+- The standalone accounting module stores interface-counter snapshots and interval deltas in SQLite. Counter decreases, interface changes, and sampling gaps are marked invalid; affected totals are flagged incomplete rather than invented.
+- The module can be smoke-tested on Python 3.9+ with `python3 -m unittest discover -s tests -v`; see [WAN traffic accounting](docs/TRAFFIC_ACCOUNTING.md) for details.
 - These are router-measured estimates and may differ from ISP billing totals.
 - Historical reporting starts only after the bot has collected enough baseline data; it cannot reconstruct usage from before installation.
 
