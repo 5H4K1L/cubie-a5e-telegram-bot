@@ -1,0 +1,5 @@
+# Base Telegram bot dependency; pin a tested version before production deployment.
+python-telegram-bot>=21,<23
+
+# Optional AI dependency; install only when Gemini AI is enabled.
+google-genai>=1,<2
