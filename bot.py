@@ -24,10 +24,11 @@ def parse_hhmm(value: str) -> wall_time:
         raise ValueError(f"Invalid time: {value}")
     return wall_time(hour, minute)
 
-async def safe_send(context: ContextTypes.DEFAULT_TYPE, message: str):
-    cfg = context.application.bot_data["config"]
+async def safe_send(context, message: str):
+    application = context if isinstance(context, Application) else context.application
+    cfg = application.bot_data["config"]
     try:
-        await context.bot.send_message(chat_id=cfg.owner_id, text=message[:3900])
+        await application.bot.send_message(chat_id=cfg.owner_id, text=message[:3900])
     except Exception:
         LOG.exception("Could not send scheduled notification")
 
