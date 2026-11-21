@@ -44,7 +44,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/network — interfaces and WAN\n/clients — DHCP leases\n/system — firmware and board details\n"
         "/traffic — WAN usage overview\n/traffic_today — yesterday's usage\n"
         "/traffic_month — previous month\n/traffic_mtd — current month to date\n"
-        "/ai — on-demand read-only AI analysis\n/reboot — request router reboot (confirmation required)\n"
+        "/ai — on-demand read-only AI analysis\n/traffic_reset — clear local usage history (confirmation required)\n/reboot — request router reboot (confirmation required)\n"
     ))
 
 @owner_only
@@ -155,6 +155,18 @@ def asyncio_to_thread(func, *args):
     return asyncio.to_thread(func, *args)
 
 @owner_only
+async def traffic_reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("Confirm reset", callback_data="admin:traffic-reset:confirm"),
+        InlineKeyboardButton("Cancel", callback_data="admin:traffic-reset:cancel"),
+    ]])
+    await update.effective_message.reply_text(
+        "Delete all locally collected WAN usage history? This cannot be undone. "
+        "Reports will be incomplete until enough new samples are collected.",
+        reply_markup=keyboard,
+    )
+
+@owner_only
 async def reboot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("Confirm reboot", callback_data="admin:reboot:confirm"),
@@ -167,6 +179,13 @@ async def confirmation_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     if not query.from_user or query.from_user.id != context.application.bot_data["config"].owner_id:
         await query.edit_message_text("Unauthorized.")
+        return
+    if query.data == "admin:traffic-reset:cancel":
+        await query.edit_message_text("Traffic history reset cancelled.")
+        return
+    if query.data == "admin:traffic-reset:confirm":
+        traffic(context).reset_baseline()
+        await query.edit_message_text("Local WAN traffic history cleared. The next sample establishes a new baseline.")
         return
     if query.data == "admin:reboot:cancel":
         await query.edit_message_text("Reboot cancelled.")
