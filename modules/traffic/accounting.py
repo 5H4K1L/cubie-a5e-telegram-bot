@@ -47,7 +47,7 @@ def detect_default_wan() -> str:
     except (OSError, subprocess.SubprocessError) as exc:
         raise RuntimeError("Unable to detect WAN interface; set WAN_INTERFACE explicitly") from exc
     for line in output.splitlines():
-        match = re.search(r"(?:^|\\s)dev\\s+([^\\s]+)", line)
+        match = re.search(r"(?:^|\s)dev\s+([^\s]+)", line)
         if match:
             return match.group(1)
     raise RuntimeError("No IPv4 default-route interface found; set WAN_INTERFACE explicitly")
@@ -246,7 +246,7 @@ def format_report(report: TrafficReport) -> str:
     if report.warnings:
         lines.append("Notes: %s" % ", ".join(report.warnings))
     lines.append("Router interface counters; may differ from ISP billing totals.")
-    return "\\n".join(lines)
+    return "\n".join(lines)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Local WAN traffic accounting")
