@@ -203,19 +203,19 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @owner_only
 async def vpn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await send(update, "🔐 VPN status\\n" + "\\n".join(vpn_status()))
+    await send(update, "🔐 VPN status\n" + "\n".join(vpn_status()))
 
 @owner_only
 async def control_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
-        "🛠 Router service controls\\nEvery operation requires a second confirmation. "
+        "🛠 Router service controls\nEvery operation requires a second confirmation. "
         "Restarting network may disconnect Telegram temporarily.", reply_markup=control_keyboard())
 
 @owner_only
 async def analytics_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     account = traffic(context)
-    await send(update, "📈 WAN traffic analytics\\n\\n"
-        + format_report(account.month_to_date_report()) + "\\n\\n"
+    await send(update, "📈 WAN traffic analytics\n\n"
+        + format_report(account.month_to_date_report()) + "\n\n"
         + format_report(account.daily_report()))
 
 async def advanced_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -229,7 +229,7 @@ async def advanced_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(dashboard_text(), reply_markup=dashboard_keyboard())
         return
     if data == "dash:vpn":
-        await query.edit_message_text("🔐 VPN status\\n" + "\\n".join(vpn_status()),
+        await query.edit_message_text("🔐 VPN status\n" + "\n".join(vpn_status()),
             reply_markup=dashboard_keyboard())
         return
     if data == "dash:control":
