@@ -43,9 +43,16 @@ async def sample_traffic(context: ContextTypes.DEFAULT_TYPE):
 async def alert_check(context: ContextTypes.DEFAULT_TYPE):
     monitor = context.application.bot_data["alert_monitor"]
     for message in monitor.check():
-        await safe_send(context, "⚠️ Router alert\n" + message)
+        await safe_send(context, "⚠️ Router alert
+" + message)
 
-async def advanced_alert_check(context: ContextTypes.DEFAULT_TYPE):\n    monitor = context.application.bot_data["advanced_monitor"]\n    for message in monitor.check():\n        await safe_send(context, "🔔 Network/VPN event\\n" + message)\n\nasync def daily_usage(context: ContextTypes.DEFAULT_TYPE):
+async def advanced_alert_check(context: ContextTypes.DEFAULT_TYPE):
+    monitor = context.application.bot_data["advanced_monitor"]
+    for message in monitor.check():
+        await safe_send(context, "🔔 Network/VPN event\
+" + message)
+
+async def daily_usage(context: ContextTypes.DEFAULT_TYPE):
     cfg = context.application.bot_data["config"]
     report = await asyncio.to_thread(TrafficAccounting(cfg.database_path, cfg.timezone).daily_report)
     await safe_send(context, format_report(report))
@@ -61,7 +68,9 @@ async def ai_report(context: ContextTypes.DEFAULT_TYPE, period: str):
         return
     try:
         report = await asyncio.to_thread(assistant.report, period)
-        await safe_send(context, f"🤖 Gemini {period} router report\n\n{report}")
+        await safe_send(context, f"🤖 Gemini {period} router report
+
+{report}")
     except Exception:
         LOG.exception("Scheduled Gemini report failed")
         await safe_send(context, f"Gemini {period} report unavailable; normal router monitoring is unaffected.")
@@ -82,7 +91,8 @@ async def post_init(application: Application):
     if jobs is None:
         raise RuntimeError("Install python-telegram-bot[job-queue] to enable scheduled reports")
     jobs.run_repeating(sample_traffic, interval=cfg.sample_interval, first=5, name="wan-sampling")
-    jobs.run_repeating(alert_check, interval=cfg.alert_interval, first=30, name="alert-monitor")\n    jobs.run_repeating(advanced_alert_check, interval=cfg.alert_interval, first=45, name="advanced-alert-monitor")
+    jobs.run_repeating(alert_check, interval=cfg.alert_interval, first=30, name="alert-monitor")
+    jobs.run_repeating(advanced_alert_check, interval=cfg.alert_interval, first=45, name="advanced-alert-monitor")
     jobs.run_daily(daily_usage, time=parse_hhmm(cfg.daily_report_time).replace(tzinfo=tz), name="daily-traffic-report")
     jobs.run_monthly(monthly_usage, when=parse_hhmm(cfg.monthly_report_time).replace(tzinfo=tz), day=1, name="monthly-traffic-report")
     if application.bot_data.get("ai") is not None:
@@ -124,11 +134,13 @@ def main():
         ("uptime", uptime_command), ("network", network_command), ("clients", clients_command),
         ("system", system_command), ("traffic", traffic_command), ("traffic_today", traffic_today),
         ("traffic_month", traffic_month), ("traffic_mtd", traffic_mtd), ("ai", ai_command),
-        ("reboot", reboot_command), ("traffic_reset", traffic_reset_command),\n        ("dashboard", dashboard_command), ("vpn", vpn_command), ("control", control_command), ("analytics", analytics_command),
+        ("reboot", reboot_command), ("traffic_reset", traffic_reset_command),
+        ("dashboard", dashboard_command), ("vpn", vpn_command), ("control", control_command), ("analytics", analytics_command),
     ]
     for command, callback in handlers:
         application.add_handler(CommandHandler(command, callback))
-    application.add_handler(CallbackQueryHandler(confirmation_callback, pattern=r"^admin:(reboot|traffic-reset):"))\n    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)"))
+    application.add_handler(CallbackQueryHandler(confirmation_callback, pattern=r"^admin:(reboot|traffic-reset):"))
+    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)"))
     application.run_polling(allowed_updates=["message", "callback_query"])
 
 if __name__ == "__main__":
