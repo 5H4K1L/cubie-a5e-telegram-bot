@@ -1,17 +1,17 @@
 # Installation guide — ImmortalWrt and OpenWrt
 
-This is an initial source release. Test on a system where you have recovery access. The installer installs Python dependencies and registers a procd service; package availability varies by firmware release and feed.
+This is an initial source release. Test on a system where you have recovery access. The installer installs firmware-matched Python packages, creates an isolated Python environment, and registers a procd service.
 
 ## 1. Requirements
 
 - Radxa Cubie A5E with ImmortalWrt or OpenWrt, ARM64.
-- Python 3.10 or newer, Git, pip, and Python virtual-environment support.
+- Python 3.10 or newer, Git, pip, Python venv support, and SQLite Python bindings.
 - SSH root access and working outbound DNS/HTTPS.
 - Telegram bot token and your numeric Telegram user ID.
 - Recommended: writable persistent storage for /opt and /etc/cubie-a5e-telegram-bot.
 - Optional: Google Gemini API key.
 
-The 1 GB RAM model is supported by design. Keep optional AI disabled unless memory and storage allow it. The Gemini SDK is not installed by the base installer.
+The 1 GB RAM model is supported by design. AI is disabled by default; the Gemini SDK is not installed by the base installer.
 
 ## 2. Inspect firmware and package manager
 
@@ -25,17 +25,20 @@ The 1 GB RAM model is supported by design. Keep optional AI disabled unless memo
 
 Use only feeds matching the installed firmware release, target, and architecture. Do not mix Cortex-A53/Cortex-A55 or different release feeds.
 
-## 3. Install prerequisites
+## 3. Prerequisites installed by the script
 
-Refresh the package index: apk update or opkg update.
+For APK-based ImmortalWrt, the installer uses these package names:
 
-The installer attempts these packages:
-- APK: python3 py3-pip py3-virtualenv git ca-bundle, plus python3-sqlite3 when available as a separate package.
-- opkg: python3 python3-pip git ca-bundle, plus python3-sqlite3 when available as a separate package.
+- `python3`
+- `python3-venv`
+- `python3-pip`
+- `python3-sqlite3`
+- `git`
+- `ca-bundle`
 
-Python must include sqlite3 and TLS support. The base Python requirements install timezone database data for Asia/Dhaka and other configured time zones.
+For opkg-based systems, the script requests the corresponding package names. Package availability can vary by firmware build. The script checks Python imports for sqlite3, zoneinfo, ssl, and venv before continuing.
 
-Names vary. Check available Python, pip, and venv packages first. If the installer cannot create a virtual environment, stop and install the correct venv/virtualenv package for the exact firmware. Never force packages from another release or architecture.
+On the tested Cubie A5E package feeds, the correct names are `python3-pip` and `python3-venv` — not `py3-pip` or `py3-virtualenv`.
 
 ## 4. Clone and install
 
@@ -44,9 +47,9 @@ Names vary. Check available Python, pip, and venv packages first. If the install
     cd cubie-a5e-telegram-bot
     sh install.sh
 
-The installer places the application in /opt/cubie-a5e-telegram-bot, creates a virtual environment, installs base dependencies, creates a private .env template, and registers /etc/init.d/cubie-a5e-telegram-bot.
+The installer places the application in /opt/cubie-a5e-telegram-bot, creates a Python virtual environment, installs base dependencies, creates a private .env template, and registers /etc/init.d/cubie-a5e-telegram-bot. It enables boot startup but does not start the bot automatically during installation.
 
-If installation fails, resolve the reported package/dependency issue before continuing. Do not start the service until configured.
+If installation fails, resolve the reported package/dependency issue before continuing. Do not force packages from another release or architecture.
 
 ## 5. Configure Telegram
 
@@ -68,16 +71,21 @@ Check the default route:
 
     ip -4 route show default
 
-If the WAN device is pppoe-wan, for example, set WAN_INTERFACE=pppoe-wan in .env. Other common names include wan, eth0, or a VLAN/PPPoE device. Use the actual device shown by your router. WAN RX is treated as download and WAN TX as upload.
+For this router's reported default route, use:
+
+    WAN_INTERFACE=pppoe-wan
+
+Set this in .env. WAN RX is treated as download and WAN TX as upload. If the WAN device changes later, update this setting.
 
 ## 7. Start and enable procd
 
-    /etc/init.d/cubie-a5e-telegram-bot enable
+The installer enables the service for boot. After configuring .env, run:
+
     /etc/init.d/cubie-a5e-telegram-bot start
     /etc/init.d/cubie-a5e-telegram-bot status
     logread -e cubie
 
-The service starts at boot and restarts if the process exits. The bot sends a startup notification to the configured owner.
+The bot loads .env by its absolute location beside bot.py, so it does not depend on procd's working directory. The service restarts if the process exits. The bot sends a startup notification to the configured owner.
 
 Stop or restart:
 
@@ -117,7 +125,7 @@ AI is disabled by default and not required for normal operation.
 Install the optional SDK:
 
     cd /opt/cubie-a5e-telegram-bot
-    .venv/bin/pip install -r requirements-ai.txt
+    .venv/bin/python -m pip install -r requirements-ai.txt
 
 Set in .env:
 
@@ -166,7 +174,7 @@ Remove /opt/cubie-a5e-telegram-bot only if you no longer need source or local .e
 ## Troubleshooting
 
 - Package not found: verify release, target, architecture, and feed configuration.
-- Python venv failure: install the firmware-matching venv/virtualenv package.
+- Python venv failure: verify that python3-venv for the exact firmware is installed.
 - Bot unauthorized: verify TELEGRAM_OWNER_ID is the numeric ID of the account sending commands.
 - No response: verify token, outbound DNS/HTTPS, and process state.
 - No WAN reports: verify WAN_INTERFACE, default route, system time, and SQLite write permissions.
