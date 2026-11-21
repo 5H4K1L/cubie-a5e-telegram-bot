@@ -1,101 +1,58 @@
-# AI feature design — Gemini
+# AI feature — Gemini
 
-This document defines the approved AI scope for the Cubie A5E Telegram bot.
+## Implemented behavior
 
-## Approved configuration
+The optional AI subsystem uses Google's official google-genai Python SDK. It provides an on-demand /ai analysis and scheduled daily, weekly, and monthly read-only health summaries. Each scheduled report analyzes an aggregate router snapshot at that time; it does not claim to have historical weekly/monthly measurements.
 
-- Provider: Google Gemini API
-- AI report cadence: daily, weekly, and monthly
-- Internet-usage reports: daily and monthly, delivered as factual usage summaries; optionally include a short Gemini explanation of notable changes
-- Report language: English
-- Permissions: read-only analysis
-- Time zone: Asia/Dhaka (configurable)
-- AI is an optional subsystem. If Gemini is unavailable, normal router commands, monitoring, and non-AI alerts must continue working.
+- Provider: Google Gemini API.
+- Language: English.
+- Time zone: Asia/Dhaka by default; configurable.
+- AI disabled by default and separated from core dependencies.
+- Missing keys, SDK errors, and API failures do not interrupt ordinary router monitoring or traffic reports.
 
-## Responsibilities
+## Modules
 
-The AI subsystem is split into independent modules:
+    modules/ai/
+      __init__.py
+      gemini_client.py
+      ai_assistant.py
 
-```text
-modules/
-  ai/
-    __init__.py
-    gemini_client.py       # Gemini API adapter and timeouts
-    ai_assistant.py        # Owner-only /ask command
-    daily_summary.py       # Daily report generation
-    weekly_summary.py      # Weekly report generation
-    monthly_summary.py     # Monthly report generation
-    log_analyzer.py        # Bounded, redacted log analysis
-    recommendations.py     # Read-only troubleshooting suggestions
-    prompts.py             # System instructions and report templates
-```
-
-The scheduler must run each report independently and prevent one failed report from stopping other scheduled tasks.
-
-## Internet usage accounting and reports
-
-In addition to AI health summaries, the bot must provide dedicated daily and monthly internet-usage reports.
-
-- Daily usage: total WAN download, upload, and combined traffic for the previous local calendar day.
-- Monthly usage: total WAN download, upload, and combined traffic for the previous calendar month, plus a month-to-date view on demand.
-- Include download and upload separately, with human-readable units (MiB/GiB).
-- Identify the measured WAN interface and reporting period in every report.
-- Keep the factual totals separate from Gemini's interpretation. If Gemini is unavailable, send the usage totals without AI commentary.
-- Persist periodic counter snapshots locally (SQLite preferred), calculate deltas, and handle interface resets, router reboots, counter wrap/reset, and WAN interface changes.
-- Do not claim historical totals for time before monitoring began. Mark missing intervals or uncertain totals as incomplete/estimated.
-- Do not treat current interface counters as monthly ISP billing usage; router counters may reset and may not match the ISP's accounting method.
-- Provide configurable retention and a way to reset the local accounting baseline deliberately.
-
-## Reporting and history
-
-- Daily AI report: summarize the previous local calendar day.
-- Weekly AI report: summarize the previous Monday–Sunday period.
-- Monthly AI report: summarize the previous calendar month.
-- Daily and monthly internet-usage reports: report the measured WAN download/upload totals for the corresponding period.
-- Send reports in English to the configured Telegram chat.
-- Persist compact, timestamped metric snapshots and report-period boundaries locally (SQLite is preferred).
-- Weekly and monthly reports must use stored historical snapshots, not pretend that current counters describe an entire past period.
-- Store traffic counter deltas with interface identity and counter-reset detection. Do not label router interface counters as ISP monthly usage unless the source actually provides that measurement.
-- Make report times and retention configurable. Use Asia/Dhaka by default.
+The Gemini client receives only sanitized telemetry. It has no router shell, UCI, service-control, package-management, or reboot tools.
 
 ## Data sent to Gemini
 
-Send only the minimum data needed for the requested analysis: aggregate CPU, memory, storage, temperature, uptime, interface traffic deltas, connectivity checks, service states, and carefully selected/redacted log excerpts.
+Only aggregate selected fields are sent:
+- Hostname, kernel, architecture, and WAN interface name.
+- Uptime and load averages.
+- Total/used memory and root filesystem usage.
+- Highest available thermal-zone reading.
+- Interface count and DHCP lease count only (no MAC/IP/hostname list).
 
-Never send Telegram tokens, Gemini API keys, passwords, Wi-Fi credentials, private keys, full configuration files, client MAC/IP inventories, or unredacted logs. Do not upload full router logs by default.
+Never send Telegram bot tokens, Gemini keys, passwords, Wi-Fi credentials, private keys, full router configuration, client inventories, or raw/unredacted logs. Treat AI output as untrusted advice. No AI output is executed.
 
-## Read-only security boundary
+## Enable Gemini
 
-The AI provider must have no router command-execution tool and no ability to change UCI settings, firewall rules, DNS, packages, services, or reboot the device. Treat model output as untrusted text. Recommendations are informational and must not be executed automatically.
+Install the optional SDK:
 
-Only the configured Telegram owner may use AI commands or receive private reports. Apply request timeouts, bounded input/output sizes, rate limits, and graceful handling for missing keys, quota errors, network failures, and invalid responses.
+    cd /opt/cubie-a5e-telegram-bot
+    .venv/bin/pip install -r requirements-ai.txt
 
-## Configuration (example names)
+Set in the private .env:
 
-Keep secrets in a local, untracked configuration file or protected environment file:
+    AI_ENABLED=true
+    GEMINI_API_KEY=your_private_key
+    GEMINI_MODEL=gemini-2.5-flash
+    AI_DAILY_TIME=08:15
+    AI_WEEKLY_DAY=0
+    AI_WEEKLY_TIME=08:20
+    AI_MONTHLY_DAY=1
+    AI_MONTHLY_TIME=08:25
+    TIMEZONE=Asia/Dhaka
 
-- `GEMINI_API_KEY` — private API key
-- `GEMINI_MODEL` — model identifier, configurable rather than hard-coded
-- `AI_ENABLED` — optional feature switch
-- `AI_REPORT_CHAT_ID` — Telegram destination
-- `AI_DAILY_REPORT_TIME`, `AI_WEEKLY_REPORT_DAY`, `AI_WEEKLY_REPORT_TIME`, `AI_MONTHLY_REPORT_DAY`, `AI_MONTHLY_REPORT_TIME`
-- `TIMEZONE=Asia/Dhaka`
+Restart the service. Weekly day uses Monday=0 through Sunday=6. Monthly day must be 1–31. Check model access, quotas, and pricing in https://ai.google.dev/gemini-api/docs.
 
-Never commit real API keys or bot tokens. Add all local secret files and databases to `.gitignore`.
+## Traffic accounting is separate
 
-## Dependency
+Daily and monthly WAN usage totals are calculated locally from interface counters and SQLite history. Gemini does not calculate or invent factual totals. The bot still sends usage reports if Gemini is disabled or unavailable. Router interface totals may differ from ISP billing.
 
-Use Google's current official Python SDK, `google-genai` (imported as `from google import genai`). Pin and test a compatible version in the release requirements. Do not use the deprecated `google-generativeai` package for new implementation.
-
-## Installation tutorial requirements
-
-The installation guide must explain how to:
-1. Create a Gemini API key in Google AI Studio.
-2. Configure it locally without putting it in Git or shell history.
-3. Set the model and report schedule.
-4. Enable or disable AI independently from the base bot.
-5. Verify the API connection with a safe test command.
-6. Verify daily, weekly, and monthly scheduler jobs and inspect logs.
-7. Understand that Gemini API quotas, model availability, and pricing depend on the account and selected model.
-
-The actual install commands and package names must be validated against the released installer and both APK- and opkg-based firmware before the guide is marked production-ready.
+See docs/TRAFFIC_ACCOUNTING.md and INSTALL.md.
