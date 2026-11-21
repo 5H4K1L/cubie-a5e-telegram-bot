@@ -30,8 +30,10 @@ Use only feeds matching the installed firmware release, target, and architecture
 Refresh the package index: apk update or opkg update.
 
 The installer attempts these packages:
-- APK: python3 py3-pip py3-virtualenv git ca-bundle
-- opkg: python3 python3-pip git ca-bundle
+- APK: python3 py3-pip py3-virtualenv git ca-bundle, plus python3-sqlite3 when available as a separate package.
+- opkg: python3 python3-pip git ca-bundle, plus python3-sqlite3 when available as a separate package.
+
+Python must include sqlite3 and TLS support. The base Python requirements install timezone database data for Asia/Dhaka and other configured time zones.
 
 Names vary. Check available Python, pip, and venv packages first. If the installer cannot create a virtual environment, stop and install the correct venv/virtualenv package for the exact firmware. Never force packages from another release or architecture.
 
