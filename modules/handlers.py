@@ -42,7 +42,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/network — interfaces and WAN\n/clients — DHCP leases\n/system — firmware and board details\n"
         "/traffic — WAN usage overview\n/traffic_today — yesterday's usage\n"
         "/traffic_month — previous month\n/traffic_mtd — current month to date\n"
-        "/ai — on-demand read-only AI analysis\n/traffic_reset — clear local usage history (confirmation required)\n/reboot — request router reboot (confirmation required)\n"
+        "/ai — on-demand read-only AI analysis\n/traffic_reset — clear local usage history (confirmation required)\n/reboot — request router reboot (confirmation required)\n/dashboard — interactive router dashboard\n/vpn — VPN status\n/control — confirmed service restarts\n/analytics — WAN usage summaries\n"
     ))
 
 @owner_only
