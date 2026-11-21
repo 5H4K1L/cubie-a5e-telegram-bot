@@ -40,13 +40,14 @@ fi
 
 mkdir -p /etc/cubie-a5e-telegram-bot
 cd "$APP_DIR"
-if python3 -m venv --help >/dev/null 2>&1; then
-    python3 -m venv --system-site-packages .venv
-elif command -v virtualenv >/dev/null 2>&1; then
-    virtualenv --system-site-packages .venv
-else
-    echo "Python virtual environment support is missing. Install the matching venv/virtualenv package for this firmware and rerun." >&2
-    exit 1
+if ! python3 -m venv --system-site-packages .venv; then
+    rm -rf .venv
+    if command -v virtualenv >/dev/null 2>&1; then
+        virtualenv --system-site-packages .venv
+    else
+        echo "Python virtual environment support is missing. Install the matching venv/virtualenv package for this firmware and rerun." >&2
+        exit 1
+    fi
 fi
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install -r requirements.txt
