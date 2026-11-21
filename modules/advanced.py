@@ -2,7 +2,6 @@
 from __future__ import annotations
 import subprocess
 from pathlib import Path
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from modules.router import snapshot, human_bytes, human_duration
 
 # Only these fixed init scripts can be restarted from Telegram.
@@ -50,18 +49,21 @@ def dashboard_text() -> str:
         f"Root disk: {disk['percent']:.1f}% ({human_bytes(disk['free'])} free)\n"
         f"Temperature: {temp}\nDHCP leases: {len(d['clients'])}")
 
-def dashboard_keyboard() -> InlineKeyboardMarkup:
+def dashboard_keyboard():
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔄 Refresh", callback_data="dash:refresh")],
         [InlineKeyboardButton("🔐 VPN status", callback_data="dash:vpn"),
          InlineKeyboardButton("🛠 Router controls", callback_data="dash:control")]])
 
-def control_keyboard() -> InlineKeyboardMarkup:
+def control_keyboard():
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     rows = [[InlineKeyboardButton(f"Restart {label}", callback_data=f"svc:{key}:ask")]
         for key, label in RESTARTABLE_SERVICES.items()]
     rows.append([InlineKeyboardButton("Cancel", callback_data="dash:refresh")])
     return InlineKeyboardMarkup(rows)
 
-def confirmation_keyboard(service: str) -> InlineKeyboardMarkup:
+def confirmation_keyboard(service: str):
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     return InlineKeyboardMarkup([[InlineKeyboardButton("✅ Confirm restart", callback_data=f"svc:{service}:confirm"),
         InlineKeyboardButton("Cancel", callback_data="dash:control")]])
 
