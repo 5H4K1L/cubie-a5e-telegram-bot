@@ -1,9 +1,6 @@
 """Telegram command handlers. Every command is restricted to the configured owner."""
 from __future__ import annotations
 import logging
-import time
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from modules.router import snapshot, human_bytes, human_duration, system_info
@@ -144,7 +141,7 @@ async def ai_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await send(update, "Generating a read-only router health analysis…")
     try:
-        report = await context.application.create_task(asyncio_to_thread(assistant.report, "on-demand"))
+        report = await asyncio_to_thread(assistant.report, "on-demand")
         await send(update, report[:3900])
     except Exception:
         LOG.exception("On-demand Gemini analysis failed")
