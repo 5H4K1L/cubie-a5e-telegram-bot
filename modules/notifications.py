@@ -11,6 +11,8 @@ class AlertMonitor:
     def check(self, cooldown_seconds: int = 1800) -> list[str]:
         data = snapshot()
         candidates = []
+        if not data["system"]["wan"]:
+            candidates.append(("wan", "No IPv4 default WAN route detected"))
         temp = data["temperature_c"]
         if temp is not None and temp >= self.thresholds["temperature_c"]:
             candidates.append(("temperature", f"High router temperature: {temp:.1f} °C"))
