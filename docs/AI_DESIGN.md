@@ -5,7 +5,8 @@ This document defines the approved AI scope for the Cubie A5E Telegram bot.
 ## Approved configuration
 
 - Provider: Google Gemini API
-- Reporting cadence: daily, weekly, and monthly
+- AI report cadence: daily, weekly, and monthly
+- Internet-usage reports: daily and monthly, delivered as factual usage summaries; optionally include a short Gemini explanation of notable changes
 - Report language: English
 - Permissions: read-only analysis
 - Time zone: Asia/Dhaka (configurable)
@@ -31,11 +32,26 @@ modules/
 
 The scheduler must run each report independently and prevent one failed report from stopping other scheduled tasks.
 
+## Internet usage accounting and reports
+
+In addition to AI health summaries, the bot must provide dedicated daily and monthly internet-usage reports.
+
+- Daily usage: total WAN download, upload, and combined traffic for the previous local calendar day.
+- Monthly usage: total WAN download, upload, and combined traffic for the previous calendar month, plus a month-to-date view on demand.
+- Include download and upload separately, with human-readable units (MiB/GiB).
+- Identify the measured WAN interface and reporting period in every report.
+- Keep the factual totals separate from Gemini's interpretation. If Gemini is unavailable, send the usage totals without AI commentary.
+- Persist periodic counter snapshots locally (SQLite preferred), calculate deltas, and handle interface resets, router reboots, counter wrap/reset, and WAN interface changes.
+- Do not claim historical totals for time before monitoring began. Mark missing intervals or uncertain totals as incomplete/estimated.
+- Do not treat current interface counters as monthly ISP billing usage; router counters may reset and may not match the ISP's accounting method.
+- Provide configurable retention and a way to reset the local accounting baseline deliberately.
+
 ## Reporting and history
 
-- Daily: summarize the previous local calendar day.
-- Weekly: summarize the previous Monday–Sunday period.
-- Monthly: summarize the previous calendar month.
+- Daily AI report: summarize the previous local calendar day.
+- Weekly AI report: summarize the previous Monday–Sunday period.
+- Monthly AI report: summarize the previous calendar month.
+- Daily and monthly internet-usage reports: report the measured WAN download/upload totals for the corresponding period.
 - Send reports in English to the configured Telegram chat.
 - Persist compact, timestamped metric snapshots and report-period boundaries locally (SQLite is preferred).
 - Weekly and monthly reports must use stored historical snapshots, not pretend that current counters describe an entire past period.
