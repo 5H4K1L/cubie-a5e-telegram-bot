@@ -91,7 +91,18 @@ The release will provide an ImmortalWrt/OpenWrt procd init script and installer.
 
 After installation, verify the service state and inspect its log using the service name and log path specified by the release. The bot should restart after a router reboot.
 
-## 8. Verify the bot
+## 8. Internet usage reports
+
+The bot is designed to send separate daily and monthly WAN usage summaries.
+
+- Daily report: previous local calendar day's download and upload totals.
+- Monthly report: previous calendar month's totals, with month-to-date usage available on demand.
+- Reports must identify the WAN interface and date range.
+- Usage is calculated from locally stored interface-counter snapshots. If the router reboots, counters reset, or the WAN interface changes, the bot must detect the discontinuity and mark affected totals as incomplete rather than inventing data.
+- These are router-measured estimates and may differ from ISP billing totals.
+- Historical reporting starts only after the bot has collected enough baseline data; it cannot reconstruct usage from before installation.
+
+## 9. Verify the bot
 
 Use the release's documented test commands to verify:
 
