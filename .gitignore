@@ -1,0 +1,21 @@
+# Local secrets and configuration
+.env
+.env.*
+config.json
+config.local.json
+secrets/
+*.key
+*.pem
+
+# Runtime state and databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+logs/
+*.log
+__pycache__/
+*.py[cod]
+.venv/
+venv/
