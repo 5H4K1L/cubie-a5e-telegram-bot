@@ -105,11 +105,11 @@ All commands are owner-only:
 - /traffic_today — previous local calendar day.
 - /traffic_month — previous calendar month.
 - /traffic_mtd — current month to date.
-- /traffic_reset — requires confirmation and deletes local traffic history.
+- /traffic_reset — requires confirmation and deletes local traffic history.\n- /dashboard — live router dashboard with refresh controls.\n- /vpn — WireGuard/OpenVPN status; no keys or peer endpoints are exposed.\n- /control — allow-listed service restarts, each requiring confirmation.\n- /analytics — month-to-date and previous-day WAN usage summary.
 - /ai — optional Gemini read-only report.
 - /reboot — requires confirmation.
 
-## 9. Traffic reports
+## 9. Advanced monitoring and controls\n\nUse /dashboard for a live snapshot. /vpn reports active WireGuard interfaces and recent handshakes plus OpenVPN process presence; it never displays private keys or peer endpoints. /control offers only fixed service names (dnsmasq, firewall, network, WireGuard, OpenVPN), and every restart requires a second confirmation. Restarting network can interrupt the Telegram connection. The monitor reports WAN default-route transitions, VPN state changes, and DHCP lease additions/removals; DHCP events reflect leases only, not every static or Wi-Fi client.\n\n## 10. Traffic reports
 
 The bot samples WAN counters every 60 seconds and stores snapshots/deltas in SQLite at /etc/cubie-a5e-telegram-bot/traffic.sqlite3.
 
@@ -118,7 +118,7 @@ The bot samples WAN counters every 60 seconds and stores snapshots/deltas in SQL
 
 The first sample establishes a baseline. Gaps longer than five minutes, counter decreases, and WAN-interface changes make affected periods incomplete. Pre-installation traffic cannot be reconstructed. These router counters may differ from ISP billing totals. See docs/TRAFFIC_ACCOUNTING.md.
 
-## 10. Optional Gemini AI
+## 11. Optional Gemini AI
 
 AI is disabled by default and not required for normal operation.
 
@@ -142,11 +142,11 @@ Restart the service. Weekly day uses Monday=0 through Sunday=6; monthly day is 1
 
 See https://ai.google.dev/gemini-api/docs for current model access, quotas, and pricing.
 
-## 11. Alerts
+## 12. Alerts
 
 Default thresholds: temperature 80 °C, RAM 90%, root filesystem 90%. Configure TEMPERATURE_ALERT_C, MEMORY_ALERT_PERCENT, and DISK_ALERT_PERCENT in .env. Alert cooldown is 30 minutes per alert type.
 
-## 12. Tests
+## 13. Tests
 
 On a development machine with Python 3.10+:
 
@@ -154,7 +154,7 @@ On a development machine with Python 3.10+:
 
 GitHub Actions runs tests on pushes and pull requests.
 
-## 13. Updating and backups
+## 14. Updating and backups
 
 Back up the private configuration and traffic database before updating:
 
@@ -163,7 +163,7 @@ Back up the private configuration and traffic database before updating:
 
 Stop the service, update source with a reviewed Git pull, install changed requirements, and restart. Preserve .env and the SQLite database.
 
-## 14. Uninstall
+## 15. Uninstall
 
     /etc/init.d/cubie-a5e-telegram-bot stop
     /etc/init.d/cubie-a5e-telegram-bot disable

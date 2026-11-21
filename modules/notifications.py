@@ -30,3 +30,36 @@ class AlertMonitor:
                 self.last_alert[key] = now
                 messages.append(message)
         return messages
+
+class AdvancedEventMonitor:
+    """Detect WAN route transitions and DHCP lease arrivals/departures."""
+    def __init__(self):
+        self._wan = None
+        self._clients = None
+        self._vpn = None
+
+    def check(self) -> list[str]:
+        from modules.router import snapshot
+        from modules.advanced import vpn_status
+        data = snapshot()
+        messages = []
+        wan = data["system"].get("wan")
+        clients = {(c.get("mac", "").lower(), c.get("ip", "")): c.get("hostname", "unknown")
+                   for c in data.get("clients", [])}
+        if self._wan is not None and wan != self._wan:
+            messages.append("WAN route restored on " + wan if wan else "WAN default route lost")
+        self._wan = wan
+        if self._clients is not None:
+            added, removed = set(clients) - self._clients, self._clients - set(clients)
+            for mac, ip in sorted(added)[:10]:
+                messages.append(f"DHCP client connected: {clients[(mac, ip)]} ({ip}, {mac})")
+            for mac, ip in sorted(removed)[:10]:
+                messages.append(f"DHCP lease disappeared: {ip} ({mac})")
+            if len(added) > 10: messages.append(f"{len(added)-10} additional DHCP leases added")
+            if len(removed) > 10: messages.append(f"{len(removed)-10} additional DHCP leases removed")
+        self._clients = set(clients)
+        vpn = tuple(vpn_status())
+        if self._vpn is not None and vpn != self._vpn:
+            messages.append("VPN state changed: " + "; ".join(vpn))
+        self._vpn = vpn
+        return messages

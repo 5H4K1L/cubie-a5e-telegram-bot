@@ -5,6 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from modules.router import snapshot, human_bytes, human_duration, system_info
 from modules.traffic.accounting import TrafficAccounting, format_report
+from modules.advanced import dashboard_text, dashboard_keyboard, control_keyboard, confirmation_keyboard, vpn_status, restart_service, RESTARTABLE_SERVICES
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/network — interfaces and WAN\n/clients — DHCP leases\n/system — firmware and board details\n"
         "/traffic — WAN usage overview\n/traffic_today — yesterday's usage\n"
         "/traffic_month — previous month\n/traffic_mtd — current month to date\n"
-        "/ai — on-demand read-only AI analysis\n/traffic_reset — clear local usage history (confirmation required)\n/reboot — request router reboot (confirmation required)\n"
+        "/ai — on-demand read-only AI analysis\n/traffic_reset — clear local usage history (confirmation required)\n/reboot — request router reboot (confirmation required)\n/dashboard — interactive router dashboard\n/vpn — VPN status\n/control — confirmed service restarts\n/analytics — WAN usage summaries\n"
     ))
 
 @owner_only
@@ -195,3 +196,63 @@ async def confirmation_callback(update: Update, context: ContextTypes.DEFAULT_TY
         except OSError:
             LOG.exception("Could not invoke reboot")
             await context.bot.send_message(chat_id=query.from_user.id, text="Could not execute /sbin/reboot. Check router permissions.")
+
+@owner_only
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text(dashboard_text(), reply_markup=dashboard_keyboard())
+
+@owner_only
+async def vpn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send(update, "🔐 VPN status\n" + "\n".join(vpn_status()))
+
+@owner_only
+async def control_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text(
+        "🛠 Router service controls\nEvery operation requires a second confirmation. "
+        "Restarting network may disconnect Telegram temporarily.", reply_markup=control_keyboard())
+
+@owner_only
+async def analytics_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    account = traffic(context)
+    await send(update, "📈 WAN traffic analytics\n\n"
+        + format_report(account.month_to_date_report()) + "\n\n"
+        + format_report(account.daily_report()))
+
+async def advanced_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if not query.from_user or query.from_user.id != context.application.bot_data["config"].owner_id:
+        await query.edit_message_text("Unauthorized.")
+        return
+    data = query.data or ""
+    if data == "dash:refresh":
+        await query.edit_message_text(dashboard_text(), reply_markup=dashboard_keyboard())
+        return
+    if data == "dash:vpn":
+        await query.edit_message_text("🔐 VPN status\n" + "\n".join(vpn_status()),
+            reply_markup=dashboard_keyboard())
+        return
+    if data == "dash:control":
+        await query.edit_message_text("🛠 Choose a service. Each restart requires confirmation.",
+            reply_markup=control_keyboard())
+        return
+    if data.startswith("svc:"):
+        parts = data.split(":")
+        if len(parts) != 3:
+            await query.edit_message_text("Invalid control request.")
+            return
+        _, service, action = parts
+        if service not in RESTARTABLE_SERVICES:
+            await query.edit_message_text("Service not allowed.")
+            return
+        if action == "ask":
+            warning = " This may interrupt the bot's Telegram connection." if service == "network" else ""
+            await query.edit_message_text(f"Confirm restart of {RESTARTABLE_SERVICES[service]}?{warning}",
+                reply_markup=confirmation_keyboard(service))
+            return
+        if action == "confirm":
+            await query.edit_message_text(f"Restarting {RESTARTABLE_SERVICES[service]}…")
+            ok, message = await asyncio_to_thread(restart_service, service)
+            await context.bot.send_message(chat_id=query.from_user.id, text=("✅ " if ok else "⚠️ ") + message)
+            return
+    await query.edit_message_text("Unknown action.")
