@@ -13,6 +13,7 @@ from modules.handlers import (
     start, help_command, status, cpu, memory_command, storage_command, temp_command,
     uptime_command, network_command, clients_command, system_command, traffic_command,
     traffic_today, traffic_month, traffic_mtd, ai_command, reboot_command, traffic_reset_command, confirmation_callback,
+    dashboard_command, vpn_command, control_command, analytics_command, advanced_callback,
 )
 from modules.traffic.accounting import TrafficAccounting, format_report
 from modules.notifications import AlertMonitor
@@ -43,14 +44,12 @@ async def sample_traffic(context: ContextTypes.DEFAULT_TYPE):
 async def alert_check(context: ContextTypes.DEFAULT_TYPE):
     monitor = context.application.bot_data["alert_monitor"]
     for message in monitor.check():
-        await safe_send(context, "⚠️ Router alert
-" + message)
+        await safe_send(context, "⚠️ Router alert\n" + message)
 
 async def advanced_alert_check(context: ContextTypes.DEFAULT_TYPE):
     monitor = context.application.bot_data["advanced_monitor"]
     for message in monitor.check():
-        await safe_send(context, "🔔 Network/VPN event\
-" + message)
+        await safe_send(context, "🔔 Network/VPN event\n" + message)
 
 async def daily_usage(context: ContextTypes.DEFAULT_TYPE):
     cfg = context.application.bot_data["config"]
@@ -68,9 +67,7 @@ async def ai_report(context: ContextTypes.DEFAULT_TYPE, period: str):
         return
     try:
         report = await asyncio.to_thread(assistant.report, period)
-        await safe_send(context, f"🤖 Gemini {period} router report
-
-{report}")
+        await safe_send(context, f"🤖 Gemini {period} router report\n\n{report}")
     except Exception:
         LOG.exception("Scheduled Gemini report failed")
         await safe_send(context, f"Gemini {period} report unavailable; normal router monitoring is unaffected.")
@@ -128,6 +125,8 @@ def main():
     application.bot_data["ai"] = build_ai(cfg)
     application.bot_data["alert_monitor"] = AlertMonitor(
         cfg.temperature_alert_c, cfg.memory_alert_percent, cfg.disk_alert_percent)
+    from modules.notifications import AdvancedEventMonitor
+    application.bot_data["advanced_monitor"] = AdvancedEventMonitor()
     handlers = [
         ("start", start), ("help", help_command), ("status", status), ("cpu", cpu),
         ("memory", memory_command), ("storage", storage_command), ("temp", temp_command),
@@ -140,7 +139,7 @@ def main():
     for command, callback in handlers:
         application.add_handler(CommandHandler(command, callback))
     application.add_handler(CallbackQueryHandler(confirmation_callback, pattern=r"^admin:(reboot|traffic-reset):"))
-    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)"))
+    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)")
     application.run_polling(allowed_updates=["message", "callback_query"])
 
 if __name__ == "__main__":
