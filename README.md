@@ -11,7 +11,7 @@ A modular Python Telegram bot for monitoring a Radxa Cubie A5E running ImmortalW
 - Detects counter decreases, WAN-interface changes, and long sampling gaps; affected reports are marked incomplete.
 - Automatic temperature, memory, and storage threshold alerts.
 - Optional Google Gemini read-only health reports (daily, weekly, monthly) and on-demand /ai analysis.
-- procd service for automatic startup.
+- Interactive live dashboard with refresh buttons.\n- VPN visibility for WireGuard interfaces/handshakes and OpenVPN process state (no secrets exposed).\n- Owner-confirmed, allow-listed restarts for dnsmasq, firewall, network, WireGuard, and OpenVPN.\n- WAN route, VPN state, and DHCP lease arrival/departure notifications.\n- Traffic analytics summary for month-to-date and previous day.\n- procd service for automatic startup.
 - APK- and opkg-based firmware support, subject to Python/package availability.
 
 ## Repository status
@@ -51,7 +51,7 @@ Read INSTALL.md before installation.
 | /traffic_mtd | Current month to date |
 | /traffic_reset | Owner-confirmed deletion of local usage history |
 | /ai | Optional read-only Gemini analysis |
-| /reboot | Owner-confirmed router reboot |
+| /reboot | Owner-confirmed router reboot |\n| /dashboard | Live dashboard and refresh controls |\n| /vpn | WireGuard/OpenVPN status |\n| /control | Confirmed allow-listed service restarts |\n| /analytics | Month-to-date and previous-day WAN summary |
 
 All commands and confirmation callbacks are restricted to the numeric Telegram owner ID.
 
