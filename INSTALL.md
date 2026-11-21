@@ -1,149 +1,173 @@
-# Installation guide
+# Installation guide — ImmortalWrt and OpenWrt
 
-> **Development status:** The public repository is being prepared. The modular bot source, installer, and procd service must be published and tested before this guide can be treated as a release-ready procedure. Do not run guessed install commands or copy an installer from an unofficial fork. This document records the supported setup flow and approved configuration.
+This is an initial source release. Test on a system where you have recovery access. The installer installs Python dependencies and registers a procd service; package availability varies by firmware release and feed.
 
-## 1. Prerequisites
+## 1. Requirements
 
-- Radxa Cubie A5E (1 GB RAM or higher recommended).
-- ImmortalWrt or OpenWrt.
-- SSH access with root privileges.
-- Working internet connection.
-- Telegram account and a bot created with [@BotFather](https://t.me/BotFather).
-- Telegram numeric user ID for owner-only access.
-- Optional: Google Gemini API key from [Google AI Studio](https://aistudio.google.com/).
+- Radxa Cubie A5E with ImmortalWrt or OpenWrt, ARM64.
+- Python 3.10 or newer, Git, pip, and Python virtual-environment support.
+- SSH root access and working outbound DNS/HTTPS.
+- Telegram bot token and your numeric Telegram user ID.
+- Recommended: writable persistent storage for /opt and /etc/cubie-a5e-telegram-bot.
+- Optional: Google Gemini API key.
 
-The target is ARM64, including Cortex-A53 and Cortex-A55. Package availability depends on the firmware release, target, architecture, and configured feeds.
+The 1 GB RAM model is supported by design. Keep optional AI disabled unless memory and storage allow it. The Gemini SDK is not installed by the base installer.
 
-## 2. Inspect the router before installing
+## 2. Inspect firmware and package manager
 
-Connect over SSH and run:
+    cat /etc/openwrt_release 2>/dev/null || cat /etc/os-release
+    uname -m
+    free -h 2>/dev/null || cat /proc/meminfo | head
+    df -h
+    command -v apk && apk --version
+    command -v opkg && opkg --version
+    python3 --version
 
-```sh
-cat /etc/openwrt_release 2>/dev/null || cat /etc/os-release
-uname -m
-opkg --version 2>/dev/null || apk --version
-df -h
-free -h 2>/dev/null || cat /proc/meminfo | head
-python3 --version 2>/dev/null || echo "Python 3 is not installed"
-```
-
-Confirm that the configured package feeds match the installed firmware release and target. Do not mix packages from different OpenWrt/ImmortalWrt releases or CPU targets.
+Use only feeds matching the installed firmware release, target, and architecture. Do not mix Cortex-A53/Cortex-A55 or different release feeds.
 
 ## 3. Install prerequisites
 
-Use the package manager supplied by the firmware. Refresh its package index first:
+Refresh the package index: apk update or opkg update.
 
-- APK-based firmware: `apk update`
-- opkg-based firmware: `opkg update`
+The installer attempts these packages:
+- APK: python3 py3-pip py3-virtualenv git ca-bundle
+- opkg: python3 python3-pip git ca-bundle
 
-Install Git, Python 3, certificates, and the Python packaging/virtual-environment components available for that exact firmware release. Package names differ between releases; check availability before installing:
+Names vary. Check available Python, pip, and venv packages first. If the installer cannot create a virtual environment, stop and install the correct venv/virtualenv package for the exact firmware. Never force packages from another release or architecture.
 
-- APK: `apk search python3`
-- opkg: `opkg list | grep -E '^(python3|python3-pip|python3-venv|git|ca-bundle) '`
+## 4. Clone and install
 
-Do not force-install packages from another target or release. If a supported Python virtual environment cannot be created on the router, use the project's documented isolated-dependency method for that release.
+    cd /root
+    git clone https://github.com/5H4K1L/cubie-a5e-telegram-bot.git
+    cd cubie-a5e-telegram-bot
+    sh install.sh
 
-## 4. Download the project
+The installer places the application in /opt/cubie-a5e-telegram-bot, creates a virtual environment, installs base dependencies, creates a private .env template, and registers /etc/init.d/cubie-a5e-telegram-bot.
 
-After the first source-code release is published:
-
-```sh
-cd /root
-git clone https://github.com/5H4K1L/cubie-a5e-telegram-bot.git
-cd cubie-a5e-telegram-bot
-```
-
-For a later update, use the project's update instructions and preserve the local configuration and database.
+If installation fails, resolve the reported package/dependency issue before continuing. Do not start the service until configured.
 
 ## 5. Configure Telegram
 
-1. Open [@BotFather](https://t.me/BotFather) in Telegram.
-2. Create a bot with `/newbot`.
-3. Copy the bot token and keep it private.
-4. Obtain your own numeric Telegram user ID using a trusted ID helper bot or the project's documented method.
-5. Configure the token, owner ID, and report chat ID in the local configuration file described by the release.
+Edit /opt/cubie-a5e-telegram-bot/.env and set:
 
-Never paste a bot token into a public issue, source file, screenshot, or Git commit. If a token is exposed, revoke it with BotFather and generate a replacement.
+    TELEGRAM_BOT_TOKEN=your_new_bot_token
+    TELEGRAM_OWNER_ID=your_numeric_telegram_user_id
+    TIMEZONE=Asia/Dhaka
 
-## 6. Configure Gemini AI (optional)
+Protect the file:
 
-The approved AI defaults are:
+    chmod 600 /opt/cubie-a5e-telegram-bot/.env
 
-- Provider: Google Gemini API.
-- Reports: daily, weekly, and monthly.
-- Language: English.
-- Permissions: read-only.
-- Time zone: Asia/Dhaka (configurable).
+Create a bot through @BotFather. Obtain your numeric user ID from a trusted Telegram ID tool. Never commit the token. If a token was exposed, revoke it with BotFather and issue a replacement.
 
-Create an API key in [Google AI Studio](https://aistudio.google.com/). Store it in the private local configuration or protected environment file supported by the release. Do not put the key in `config.example.json`, source code, shell command history, or Git.
+## 6. Select WAN interface
 
-Configure the model identifier and report schedule using the release's example configuration. Model availability, quota, and pricing vary by account and model; check the current [Gemini API documentation](https://ai.google.dev/gemini-api/docs) and [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+Check the default route:
 
-The AI subsystem uses Google's `google-genai` Python SDK. AI is optional: missing API credentials or Gemini outages must not stop normal router monitoring and Telegram commands.
+    ip -4 route show default
 
-### AI privacy and permissions
+If the WAN device is pppoe-wan, for example, set WAN_INTERFACE=pppoe-wan in .env. Other common names include wan, eth0, or a VLAN/PPPoE device. Use the actual device shown by your router. WAN RX is treated as download and WAN TX as upload.
 
-Only minimum aggregate router metrics and selected redacted log excerpts may be sent to Gemini. Never send passwords, API keys, bot tokens, Wi-Fi credentials, private keys, full configuration files, or unredacted logs. The AI has no command-execution capability and cannot change router settings, firewall, DNS, services, packages, or reboot the device. Its output is advice only.
+## 7. Start and enable procd
 
-## 7. Install and enable the background service
+    /etc/init.d/cubie-a5e-telegram-bot enable
+    /etc/init.d/cubie-a5e-telegram-bot start
+    /etc/init.d/cubie-a5e-telegram-bot status
+    logread -e cubie
 
-The release will provide an ImmortalWrt/OpenWrt procd init script and installer. Use the exact commands documented by that release to install the service, enable it at boot, and start it. Do not manually invent service paths or copy an init script from a different release.
+The service starts at boot and restarts if the process exits. The bot sends a startup notification to the configured owner.
 
-After installation, verify the service state and inspect its log using the service name and log path specified by the release. The bot should restart after a router reboot.
+Stop or restart:
 
-## 8. Internet usage reports
+    /etc/init.d/cubie-a5e-telegram-bot stop
+    /etc/init.d/cubie-a5e-telegram-bot restart
 
-The bot is designed to send separate daily and monthly WAN usage summaries.
+## 8. Telegram commands
 
-- Daily report: previous local calendar day's download and upload totals.
-- Monthly report: previous calendar month's totals, with month-to-date usage available on demand.
-- Reports must identify the WAN interface and date range.
-- The standalone accounting module stores interface-counter snapshots and interval deltas in SQLite. Counter decreases, interface changes, and sampling gaps are marked invalid; affected totals are flagged incomplete rather than invented.
-- The module can be smoke-tested on Python 3.9+ with `python3 -m unittest discover -s tests -v`; see [WAN traffic accounting](docs/TRAFFIC_ACCOUNTING.md) for details.
-- These are router-measured estimates and may differ from ISP billing totals.
-- Historical reporting starts only after the bot has collected enough baseline data; it cannot reconstruct usage from before installation.
+All commands are owner-only:
+- /start, /help
+- /status
+- /cpu, /memory, /storage, /temp, /uptime
+- /network
+- /clients — DHCP leases only; not every statically configured or Wi-Fi client.
+- /system
+- /traffic — takes a sample and displays month-to-date totals.
+- /traffic_today — previous local calendar day.
+- /traffic_month — previous calendar month.
+- /traffic_mtd — current month to date.
+- /traffic_reset — requires confirmation and deletes local traffic history.
+- /ai — optional Gemini read-only report.
+- /reboot — requires confirmation.
 
-## 9. Verify the bot
+## 9. Traffic reports
 
-Use the release's documented test commands to verify:
+The bot samples WAN counters every 60 seconds and stores snapshots/deltas in SQLite at /etc/cubie-a5e-telegram-bot/traffic.sqlite3.
 
-- Telegram connection and owner authorization.
-- Router status, temperature, memory, storage, uptime, and network commands.
-- Internet and service monitoring.
-- Notification delivery.
-- Gemini connection (if enabled).
-- Daily, weekly, and monthly report scheduling.
-- Recovery when Gemini is unreachable: ordinary bot functions must continue.
+- Daily report: previous local day at DAILY_REPORT_TIME (default 08:00).
+- Monthly report: previous calendar month, sent on day 1 at MONTHLY_REPORT_TIME (default 08:05).
 
-## 9. Updating
+The first sample establishes a baseline. Gaps longer than five minutes, counter decreases, and WAN-interface changes make affected periods incomplete. Pre-installation traffic cannot be reconstructed. These router counters may differ from ISP billing totals. See docs/TRAFFIC_ACCOUNTING.md.
 
-Before updating, back up the private configuration and local history database. Fetch the new source using the release's update procedure. Do not overwrite local secrets or delete report history unless the release notes explicitly require a migration.
+## 10. Optional Gemini AI
 
-## 10. Uninstalling
+AI is disabled by default and not required for normal operation.
 
-Use the release's uninstall procedure to stop and disable the procd service, remove the application files and virtual environment, and optionally retain or remove the configuration, logs, and SQLite history database. The uninstall procedure must clearly distinguish application files from user data.
+Install the optional SDK:
 
-## 11. Troubleshooting checklist
+    cd /opt/cubie-a5e-telegram-bot
+    .venv/bin/pip install -r requirements-ai.txt
 
-- **Package not found:** confirm firmware release, target, architecture, and feed URLs.
-- **Python import error:** verify the project's virtual environment and pinned dependencies.
-- **Bot does not respond:** check token validity, outbound DNS/HTTPS, Telegram connectivity, and owner ID.
-- **Service does not start:** inspect procd status and the application log; verify file paths and permissions.
-- **Gemini authentication failure:** check the local API key and selected model.
-- **Gemini quota/rate limit:** check AI Studio usage and current account limits; normal bot functions should remain available.
-- **No scheduled report:** check router time synchronization, configured time zone, scheduler logs, and report destination.
-- **Storage pressure:** check log/database retention and available writable space before increasing history retention.
+Set in .env:
 
-## 12. Security checklist
+    AI_ENABLED=true
+    GEMINI_API_KEY=your_private_key
+    GEMINI_MODEL=gemini-2.5-flash
+    AI_DAILY_TIME=08:15
+    AI_WEEKLY_DAY=0
+    AI_WEEKLY_TIME=08:20
+    AI_MONTHLY_DAY=1
+    AI_MONTHLY_TIME=08:25
 
-- Keep bot and Gemini credentials outside Git.
-- Restrict local configuration permissions (for example, mode `0600`).
-- Keep owner-only command authorization enabled.
-- Do not expose the bot's control interface to unauthenticated users.
-- Keep AI read-only.
-- Back up configuration and report history before upgrades.
-- Rotate any credential that has been exposed.
+Restart the service. Weekly day uses Monday=0 through Sunday=6; monthly day is 1–31. AI receives aggregate metrics only and cannot execute router commands. Missing keys, SDK errors, and Gemini outages do not stop normal bot functions.
 
----
+See https://ai.google.dev/gemini-api/docs for current model access, quotas, and pricing.
 
-When the first complete source release is published, this guide must be updated with exact installer commands, supported package names for tested APK/opkg firmware versions, service-management commands, and verified screenshots/output. Until then, this is the setup plan, not a claim that the installer is already available.
+## 11. Alerts
+
+Default thresholds: temperature 80 °C, RAM 90%, root filesystem 90%. Configure TEMPERATURE_ALERT_C, MEMORY_ALERT_PERCENT, and DISK_ALERT_PERCENT in .env. Alert cooldown is 30 minutes per alert type.
+
+## 12. Tests
+
+On a development machine with Python 3.10+:
+
+    python3 -m unittest discover -s tests -v
+
+GitHub Actions runs tests on pushes and pull requests.
+
+## 13. Updating and backups
+
+Back up the private configuration and traffic database before updating:
+
+    cp /opt/cubie-a5e-telegram-bot/.env /root/cubie-bot.env.backup
+    cp /etc/cubie-a5e-telegram-bot/traffic.sqlite3 /root/traffic.sqlite3.backup 2>/dev/null || true
+
+Stop the service, update source with a reviewed Git pull, install changed requirements, and restart. Preserve .env and the SQLite database.
+
+## 14. Uninstall
+
+    /etc/init.d/cubie-a5e-telegram-bot stop
+    /etc/init.d/cubie-a5e-telegram-bot disable
+    rm -f /etc/init.d/cubie-a5e-telegram-bot
+
+Remove /opt/cubie-a5e-telegram-bot only if you no longer need source or local .env. Remove /etc/cubie-a5e-telegram-bot only if you deliberately want to delete traffic history.
+
+## Troubleshooting
+
+- Package not found: verify release, target, architecture, and feed configuration.
+- Python venv failure: install the firmware-matching venv/virtualenv package.
+- Bot unauthorized: verify TELEGRAM_OWNER_ID is the numeric ID of the account sending commands.
+- No response: verify token, outbound DNS/HTTPS, and process state.
+- No WAN reports: verify WAN_INTERFACE, default route, system time, and SQLite write permissions.
+- Incomplete usage: expected after install, reboot gaps, counter resets, or interface changes; data is not fabricated.
+- Gemini failure: check optional SDK, API key, model availability, and quota.
+- Service fails: inspect logread -e cubie, executable paths, .env permissions, and disk space.
