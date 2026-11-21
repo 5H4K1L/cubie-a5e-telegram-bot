@@ -139,7 +139,7 @@ def main():
     for command, callback in handlers:
         application.add_handler(CommandHandler(command, callback))
     application.add_handler(CallbackQueryHandler(confirmation_callback, pattern=r"^admin:(reboot|traffic-reset):"))
-    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)")
+    application.add_handler(CallbackQueryHandler(advanced_callback, pattern=r"^(dash:|svc:)"))
     application.run_polling(allowed_updates=["message", "callback_query"])
 
 if __name__ == "__main__":
