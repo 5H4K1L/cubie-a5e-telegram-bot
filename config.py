@@ -40,6 +40,12 @@ class Config:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
         if not owner.isdigit():
             raise ValueError("TELEGRAM_OWNER_ID must be your numeric Telegram user ID")
+        weekly_day = int(os.getenv("AI_WEEKLY_DAY", "0"))
+        monthly_day = int(os.getenv("AI_MONTHLY_DAY", "1"))
+        if not 0 <= weekly_day <= 6:
+            raise ValueError("AI_WEEKLY_DAY must be 0 (Monday) through 6 (Sunday)")
+        if not 1 <= monthly_day <= 31:
+            raise ValueError("AI_MONTHLY_DAY must be between 1 and 31")
         return cls(
             telegram_token=token,
             owner_id=int(owner),
@@ -54,9 +60,9 @@ class Config:
             gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             ai_daily_time=os.getenv("AI_DAILY_TIME", "08:15"),
-            ai_weekly_day=int(os.getenv("AI_WEEKLY_DAY", "0")),
+            ai_weekly_day=weekly_day,
             ai_weekly_time=os.getenv("AI_WEEKLY_TIME", "08:20"),
-            ai_monthly_day=int(os.getenv("AI_MONTHLY_DAY", "1")),
+            ai_monthly_day=monthly_day,
             ai_monthly_time=os.getenv("AI_MONTHLY_TIME", "08:25"),
             temperature_alert_c=float(os.getenv("TEMPERATURE_ALERT_C", "80")),
             disk_alert_percent=float(os.getenv("DISK_ALERT_PERCENT", "90")),
